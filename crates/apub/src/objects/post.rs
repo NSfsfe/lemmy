@@ -111,7 +111,6 @@ impl ApubObject for ApubPost {
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
-      url: self.url.clone().map(|u| u.into()),
       attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
@@ -164,14 +163,13 @@ impl ApubObject for ApubPost {
 
     let form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = page.attachment.first() {
-        // url as sent by Lemmy (new)
+        // url as sent by Lemmy
         Some(attachment.href.clone())
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
       } else {
-        // url sent by lemmy (old)
-        page.url
+        None
       };
       let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
       let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
@@ -219,7 +217,6 @@ impl ApubObject for ApubPost {
         ..Default::default()
       }
     };
-
     // read existing, local post if any (for generating mod log)
     let old_post = ObjectId::<ApubPost>::new(page.id.clone())
       .dereference_local(context)
