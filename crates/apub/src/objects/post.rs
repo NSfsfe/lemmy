@@ -4,7 +4,7 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
+      page::{Attachment, AttributedTo, Language, Page, PageType},
       tombstone::Tombstone,
     },
     ImageObject,
@@ -22,6 +22,7 @@ use lemmy_apub_lib::{
 };
 use lemmy_db_schema::{
   self,
+  newtypes::LanguageIdentifier,
   source::{
     community::Community,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
@@ -117,6 +118,7 @@ impl ApubObject for ApubPost {
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
+      language: Language::new(self.language.clone()),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };
@@ -185,6 +187,9 @@ impl ApubObject for ApubPost {
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
+      let language = page
+        .language
+        .map(|l| LanguageIdentifier::new(&l.identifier));
 
       PostForm {
         name: page.name.clone(),
@@ -205,6 +210,7 @@ impl ApubObject for ApubPost {
         thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
+        language,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
