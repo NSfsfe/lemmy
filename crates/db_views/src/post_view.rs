@@ -510,6 +510,7 @@ mod tests {
     SortType,
   };
   use serial_test::serial;
+  use lemmy_db_schema::newtypes::LanguageIdentifier;
 
   struct Data {
     inserted_person: Person,
@@ -560,6 +561,7 @@ mod tests {
       name: "blocked_person_post".to_string(),
       creator_id: inserted_blocked_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageIdentifier::new("en")),
       ..PostForm::default()
     };
 
@@ -578,6 +580,7 @@ mod tests {
       name: post_name,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageIdentifier::new("fr")),
       ..PostForm::default()
     };
 
@@ -639,7 +642,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
-        language: Default::default(),
+        language: LanguageIdentifier::new("fr"),
       },
       my_vote: None,
       creator: PersonSafe {
@@ -821,6 +824,34 @@ mod tests {
     let like_removed =
       PostLike::remove(&conn, data.inserted_person.id, data.inserted_post.id).unwrap();
     assert_eq!(1, like_removed);
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn post_listing_language() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let mut read_post_listing_french = PostQueryBuilder::create(&conn)
+        .listing_type(ListingType::Community)
+        .sort(SortType::New)
+        .community_id(data.inserted_community.id);
+    let fr = LanguageIdentifier::new("fr");
+    read_post_listing_french.languages = Some(vec![fr]);
+    let read_post_listing_french = read_post_listing_french.list().unwrap();
+
+    let expected_post_listing = expected_post_listing(&data, &conn);
+
+    assert_eq!(
+      1,
+      read_post_listing_french.len()
+    );
+    assert_eq!(
+      expected_post_listing,
+      read_post_listing_french[0]
+    );
+
     cleanup(data, &conn);
   }
 }
