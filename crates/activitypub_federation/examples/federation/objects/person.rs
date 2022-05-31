@@ -3,6 +3,7 @@ use crate::{
   error::Error,
   lib::generate_object_id,
   objects::note::MyPost,
+  Instance,
   ObjectId,
 };
 use activitypub_federation::{
@@ -10,16 +11,18 @@ use activitypub_federation::{
   context::WithContext,
   inbox::ActorPublicKey,
   signatures::{Keypair, PublicKey},
-  traits::{ActivityHandler, ApubObject},
+  traits::ApubObject,
   LocalInstance,
 };
 use activitypub_federation_derive::activity_handler;
 use activitystreams_kinds::{actor::PersonType, public};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 
 pub struct MyUser {
   pub ap_id: ObjectId<MyUser>,
+  inbox: Url,
   keypair: Keypair,
   followers: Vec<Url>,
   pub local: bool,
@@ -37,8 +40,11 @@ pub enum PersonAcceptedActivities {
 
 impl MyUser {
   pub fn new(ap_id: Url, keypair: Keypair) -> MyUser {
+    let ap_id = ObjectId::new(ap_id);
+    let inbox = Url::parse(&format!("{}/inbox", ap_id)).unwrap();
     MyUser {
-      ap_id: ObjectId::new(ap_id),
+      ap_id,
+      inbox,
       keypair,
       followers: vec![],
       local: true,
@@ -81,12 +87,7 @@ impl MyUser {
     let id = generate_object_id(hostname)?;
     let follow = Follow::new(self.ap_id.clone(), other.ap_id.clone(), id.clone());
     self
-      .send(
-        id,
-        follow,
-        vec![other.ap_id.clone().into_inner()],
-        local_instance,
-      )
+      .send(id, follow, vec![other.inbox.clone()], local_instance)
       .await?;
     Ok(())
   }
@@ -100,7 +101,9 @@ impl MyUser {
     let id = generate_object_id(hostname)?;
     let to = vec![public(), self.followers_url()?];
     let create = CreateNote::new(post.into_apub(&()).await?, id.clone());
-    self.send(id, &create, to, local_instance).await?;
+    // TODO
+    let inboxes = vec![];
+    self.send(id, &create, inboxes, local_instance).await?;
     Ok(())
   }
 
@@ -113,22 +116,22 @@ impl MyUser {
     local_instance: &LocalInstance,
   ) -> Result<(), Error> {
     let serialized = serde_json::to_string(&WithContext::new_default(activity))?;
-    SendActivity {
+    let send = SendActivity {
       activity_id,
       actor_public_key: self.public_key(),
       actor_private_key: self.keypair.private_key.clone(),
       inboxes,
       activity: serialized,
-    }
-    .send(local_instance)
-    .await?;
+    };
+    dbg!(&send);
+    send.send(local_instance).await?;
     Ok(())
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for MyUser {
-  type DataType = ();
+  type DataType = Arc<Instance>;
   type ApubType = Person;
   type DbType = MyUser;
   type TombstoneType = ();
@@ -144,15 +147,7 @@ impl ApubObject for MyUser {
     todo!()
   }
 
-  async fn delete(self, _data: &Self::DataType) -> Result<(), Self::Error> {
-    todo!()
-  }
-
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, Self::Error> {
-    todo!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
     todo!()
   }
 

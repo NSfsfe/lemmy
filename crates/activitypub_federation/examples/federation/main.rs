@@ -5,7 +5,7 @@ use crate::{
   objects::{note::MyPost, person::MyUser},
 };
 use activitypub_federation::signatures::generate_actor_keypair;
-use tokio::task;
+use std::sync::Arc;
 
 mod activities;
 mod error;
@@ -19,12 +19,12 @@ pub type ObjectId<Kind> = activitypub_federation::object_id::ObjectId<Kind, Erro
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
   static ALPHA_HOSTNAME: &str = "localhost:8001";
-  static BETA_HOSTNAME: &str = "localhost:8001";
-  let alpha = Instance::new(ALPHA_HOSTNAME.to_string());
-  let beta = Instance::new(BETA_HOSTNAME.to_string());
-  //task::spawn(async move {
-  //  alpha.listen().await;
-  //});
+  static BETA_HOSTNAME: &str = "localhost:8002";
+  let alpha = Arc::new(Instance::new(ALPHA_HOSTNAME.to_string()));
+  let beta = Arc::new(Instance::new(BETA_HOSTNAME.to_string()));
+  Instance::listen(&alpha)?;
+  Instance::listen(&beta)?;
+
   let alpha_user = MyUser::new(
     generate_object_id(ALPHA_HOSTNAME)?,
     generate_actor_keypair()?,

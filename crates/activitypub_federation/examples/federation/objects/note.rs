@@ -1,7 +1,8 @@
-use crate::{generate_object_id, objects::person::MyUser, ObjectId};
+use crate::{generate_object_id, objects::person::MyUser, Instance, ObjectId};
 use activitypub_federation::{deser::deserialize_one_or_many, traits::ApubObject};
 use activitystreams_kinds::{object::NoteType, public};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 
 #[derive(Clone)]
@@ -37,7 +38,7 @@ pub struct Note {
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for MyPost {
-  type DataType = ();
+  type DataType = Arc<Instance>;
   type ApubType = Note;
   type DbType = ();
   type TombstoneType = ();
@@ -47,10 +48,6 @@ impl ApubObject for MyPost {
     _object_id: Url,
     _data: &Self::DataType,
   ) -> Result<Option<Self>, Self::Error> {
-    Ok(None)
-  }
-
-  async fn delete(self, _data: &Self::DataType) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -63,10 +60,6 @@ impl ApubObject for MyPost {
       to: vec![public(), creator.followers_url()?],
       content: self.text,
     })
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
-    todo!()
   }
 
   async fn verify(

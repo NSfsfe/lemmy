@@ -1,10 +1,12 @@
 use crate::{
   objects::{note::Note, person::MyUser},
+  Instance,
   ObjectId,
 };
 use activitypub_federation::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
 use activitystreams_kinds::activity::CreateType;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 
 #[derive(Deserialize, Serialize)]
@@ -33,7 +35,7 @@ impl CreateNote {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateNote {
-  type DataType = ();
+  type DataType = Arc<Instance>;
   type Error = crate::error::Error;
 
   fn id(&self) -> &Url {

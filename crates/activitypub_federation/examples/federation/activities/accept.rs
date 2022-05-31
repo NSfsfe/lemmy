@@ -1,7 +1,8 @@
-use crate::{activities::follow::Follow, objects::person::MyUser, ObjectId};
+use crate::{activities::follow::Follow, objects::person::MyUser, Instance, ObjectId};
 use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::AcceptType;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 
 #[derive(Deserialize, Serialize)]
@@ -27,7 +28,7 @@ impl Accept {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Accept {
-  type DataType = ();
+  type DataType = Arc<Instance>;
   type Error = crate::error::Error;
 
   fn id(&self) -> &Url {

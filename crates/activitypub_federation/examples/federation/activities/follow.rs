@@ -1,7 +1,8 @@
-use crate::{objects::person::MyUser, ObjectId};
+use crate::{objects::person::MyUser, Instance, ObjectId};
 use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::FollowType;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -27,7 +28,7 @@ impl Follow {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Follow {
-  type DataType = ();
+  type DataType = Arc<Instance>;
   type Error = crate::error::Error;
 
   fn id(&self) -> &Url {
@@ -43,7 +44,8 @@ impl ActivityHandler for Follow {
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
   ) -> Result<(), Self::Error> {
-    todo!()
+    dbg!("verify follow");
+    Ok(())
   }
 
   async fn receive(
@@ -51,6 +53,7 @@ impl ActivityHandler for Follow {
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
   ) -> Result<(), Self::Error> {
-    todo!()
+    dbg!("receive follow");
+    Ok(())
   }
 }
